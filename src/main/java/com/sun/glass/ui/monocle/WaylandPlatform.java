@@ -78,8 +78,12 @@ public class WaylandPlatform extends NativePlatform {
 
     protected WaylandScreen createScreen() {
         if (this.waylandScreen == null) {
-            //TODO check if we have at least the minimum required globals
-            this.waylandScreen = this.waylandScreenFactory.create();
+            //check if we have at least the minimum required globals (any conform wayland compositor is required to provide these)
+            assert this.compositorProxy != null;
+            assert this.shellProxy != null;
+
+            this.waylandScreen = this.waylandScreenFactory.create(this.compositorProxy,
+                                                                  this.shellProxy);
         }
         return this.waylandScreen;
     }
@@ -120,7 +124,8 @@ public class WaylandPlatform extends NativePlatform {
                                                  });
         }
         else if (WlSeatProxy.INTERFACE_NAME.equals(interfaceName)) {
-            //FIXME multiple seats can be announced. Handle this.
+            //FIXME multiple seats can be announced. Handle this. -> notify WaylandInputDeviceRegistry
+            //TODO can javafx actually handle a multi seat setup?
             this.seatProxy = registryProxy.bind(name,
                                                 WlSeatProxy.class,
                                                 WlSeatEventsV3.VERSION,

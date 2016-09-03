@@ -5,7 +5,8 @@ import com.google.auto.factory.AutoFactory;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
-@AutoFactory(allowSubclasses = true)
+@AutoFactory(allowSubclasses = true,
+             className = "PrivateWaylandScreenFactory")
 public class WaylandScreen implements NativeScreen {
 
     /*
@@ -26,7 +27,7 @@ public class WaylandScreen implements NativeScreen {
      */
 
     WaylandScreen() {
-        //TODO this is our main wayland surface
+        //TODO this is our main wayland 'fullscreen' surface
     }
 
     public int getDepth() {
