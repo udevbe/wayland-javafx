@@ -2,10 +2,6 @@ package com.sun.glass.ui.monocle;
 
 
 import org.freedesktop.wayland.client.WlDisplayProxy;
-import org.freedesktop.wayland.client.WlRegistryEvents;
-import org.freedesktop.wayland.client.WlRegistryProxy;
-
-import javax.annotation.Nonnull;
 
 public class WaylandPlatformFactory extends NativePlatformFactory {
 
@@ -29,25 +25,12 @@ public class WaylandPlatformFactory extends NativePlatformFactory {
         final WlDisplayProxy  wlDisplayProxy  = WlDisplayProxy.connect("wayland-0");
         final WaylandPlatform waylandPlatform = this.privateWaylandPlatformFactory.create(wlDisplayProxy);
 
-        wlDisplayProxy.getRegistry(new WlRegistryEvents() {
-            @Override
-            public void global(final WlRegistryProxy emitter,
-                               final int name,
-                               @Nonnull final String interfaceName,
-                               final int version) {
-                waylandPlatform.onGlobalAdded(emitter,
-                                              name,
-                                              interfaceName,
-                                              version);
-            }
-
-            @Override
-            public void globalRemove(final WlRegistryProxy emitter,
-                                     final int name) {
-                waylandPlatform.onGlobalRemoved(emitter,
-                                                name);
-            }
-        });
+        wlDisplayProxy.getRegistry(waylandPlatform);
+        //make sure we receive all globals
+        wlDisplayProxy.roundtrip();
+        //we should have received the shm proxy by now
+        assert waylandPlatform.getWaylandShm() != null;
+        wlDisplayProxy.roundtrip();
 
         return waylandPlatform;
     }

@@ -13,7 +13,7 @@ public class WaylandScreenFactory {
     private final PrivateWaylandScreenFactory privateWaylandScreenFactory;
 
     @Inject
-    WaylandScreenFactory(@Nonnull PrivateWaylandScreenFactory privateWaylandScreenFactory) {
+    WaylandScreenFactory(@Nonnull final PrivateWaylandScreenFactory privateWaylandScreenFactory) {
         this.privateWaylandScreenFactory = privateWaylandScreenFactory;
     }
 
@@ -23,7 +23,6 @@ public class WaylandScreenFactory {
         //TODO create buffer pool
         //TODO create wayland surface
         //TODO use fullscreen_shell instead of wl_shell
-
 
         return this.privateWaylandScreenFactory.create();
     }

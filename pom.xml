@@ -6,7 +6,9 @@
 
     <properties>
         <wayland.client.version>1.5.0-SNAPSHOT</wayland.client.version>
-        <jaccall.version>1.0.3</jaccall.version>
+        <jaccall.version>1.0.4-SNAPSHOT</jaccall.version>
+        <dagger.version>2.6.1</dagger.version>
+        <auto.factory.version>1.0-beta3</auto.factory.version>
         <maven.compiler.plugin.version>3.5.1</maven.compiler.plugin.version>
 
         <!-- java version -->
@@ -14,9 +16,19 @@
         <maven.compiler.source>1.9</maven.compiler.source>
         <maven.compiler.target>1.9</maven.compiler.target>
         <maven.compiler.executable>javac</maven.compiler.executable>
+
+        <!-- javafx -->
+        <jfxrt.path>/home/zubzub/hg/openjfx9-devrt/build/sdk/lib/jfxrt.jar</jfxrt.path>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>openjfx</artifactId>
+            <version>9</version>
+            <scope>system</scope>
+            <systemPath>${jfxrt.path}</systemPath>
+        </dependency>
         <dependency>
             <groupId>org.freedesktop</groupId>
             <artifactId>wayland-client</artifactId>
@@ -26,6 +38,17 @@
             <groupId>org.freedesktop</groupId>
             <artifactId>jaccall.runtime</artifactId>
             <version>${jaccall.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.dagger</groupId>
+            <artifactId>dagger</artifactId>
+            <version>${dagger.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.auto.factory</groupId>
+            <artifactId>auto-factory</artifactId>
+            <version>${auto.factory.version}</version>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
@@ -47,6 +70,16 @@
                             <groupId>org.freedesktop</groupId>
                             <artifactId>jaccall.generator</artifactId>
                             <version>${jaccall.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.google.dagger</groupId>
+                            <artifactId>dagger-compiler</artifactId>
+                            <version>${dagger.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.google.auto.factory</groupId>
+                            <artifactId>auto-factory</artifactId>
+                            <version>${auto.factory.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
