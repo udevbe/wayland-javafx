@@ -1,7 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import org.freedesktop.wayland.client.WlCompositorEventsV4;
 import org.freedesktop.wayland.client.WlCompositorProxy;
 import org.freedesktop.wayland.client.WlDisplayProxy;
@@ -14,9 +12,8 @@ import org.freedesktop.wayland.client.WlShmProxy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
-@AutoFactory(allowSubclasses = true,
-             className = "PrivateWaylandPlatformFactory")
 public class WaylandPlatform extends NativePlatform implements WlRegistryEvents {
 
     /*
@@ -34,27 +31,24 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     @Nonnull
     private final WaylandShmFactory  waylandShmFactory;
 
-    @Nonnull
-    private final WlDisplayProxy    displayProxy;
     @Nullable
-    private       WlCompositorProxy compositorProxy;
+    private WlCompositorProxy compositorProxy;
     @Nullable
-    private       WlShellProxy      shellProxy;
+    private WlShellProxy      shellProxy;
 
     @Nullable
     private WaylandShm waylandShm;
 
-    WaylandPlatform(@Provided @Nonnull final WaylandCursorFactory waylandCursorFactory,
-                    @Provided @Nonnull final WaylandScreenFactory waylandScreenFactory,
-                    @Provided @Nonnull final WaylandSeatFactory waylandSeatFactory,
-                    @Provided @Nonnull final WaylandShmFactory waylandShmFactory,
+    @Inject
+    WaylandPlatform(@Nonnull final WaylandCursorFactory waylandCursorFactory,
+                    @Nonnull final WaylandScreenFactory waylandScreenFactory,
+                    @Nonnull final WaylandSeatFactory waylandSeatFactory,
+                    @Nonnull final WaylandShmFactory waylandShmFactory,
                     @Nonnull final WlDisplayProxy wlDisplayProxy) {
         this.waylandCursorFactory = waylandCursorFactory;
         this.waylandScreenFactory = waylandScreenFactory;
         this.waylandSeatFactory = waylandSeatFactory;
         this.waylandShmFactory = waylandShmFactory;
-
-        this.displayProxy = wlDisplayProxy;
     }
 
     protected InputDeviceRegistry createInputDeviceRegistry() {

@@ -1,9 +1,15 @@
 package com.sun.glass.ui.monocle;
 
 import dagger.Component;
+import org.freedesktop.wayland.client.WlDisplayProxy;
 
-@Component
+import javax.inject.Singleton;
+
+@Component(modules = WaylandModule.class)
+@Singleton
 public interface WaylandComponent {
 
-    PrivateWaylandPlatformFactory privateWaylandPlatformFactory();
+    WaylandPlatform waylandPlatform();
+
+    WlDisplayProxy wlDisplayProxy();
 }
