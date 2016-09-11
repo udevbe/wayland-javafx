@@ -23,7 +23,6 @@ public class WaylandScreenFactory {
         //TODO create buffer pool
         //TODO create wayland surface
         //TODO use fullscreen_shell instead of wl_shell
-
-        return this.privateWaylandScreenFactory.create();
+        return null;
     }
 }
