@@ -15,11 +15,4 @@ public class WaylandModule {
         //TODO from config
         return WlDisplayProxy.connect("wayland-0");
     }
-
-    @Provides
-    @Singleton
-    Libxkbcommon providesLibxkbcommon() {
-        new Libxkbcommon_Symbols().link();
-        return new Libxkbcommon();
-    }
 }
