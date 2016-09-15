@@ -20,7 +20,11 @@ import java.nio.ByteBuffer;
 
 @AutoFactory(allowSubclasses = true,
              className = "PrivateWaylandScreenFactory")
-public class WaylandScreen implements NativeScreen, WlOutputEventsV2, WlBufferEvents, WlSurfaceEventsV4, WlShellSurfaceEvents {
+public class WaylandScreen implements NativeScreen,
+                                      WlOutputEventsV2,
+                                      WlBufferEvents,
+                                      WlSurfaceEventsV4,
+                                      WlShellSurfaceEvents {
 
     private final WlSurfaceProxy      wlSurfaceProxy;
     private final WlShellSurfaceProxy wlShellSurfaceProxy;
@@ -154,6 +158,9 @@ public class WaylandScreen implements NativeScreen, WlOutputEventsV2, WlBufferEv
         this.width = width;
         this.height = height;
 
+        //we're going to take it easy and not support buffer resizing for now
+
+
         if (emitter.getVersion() < WlOutputEventsV2.VERSION) {
             updateDpi();
         }
@@ -178,19 +185,19 @@ public class WaylandScreen implements NativeScreen, WlOutputEventsV2, WlBufferEv
     @Override
     public void enter(final WlSurfaceProxy emitter,
                       @Nonnull final WlOutputProxy output) {
-
+        //NOOP monocle only supports a single output
     }
 
     @Override
     public void leave(final WlSurfaceProxy emitter,
                       @Nonnull final WlOutputProxy output) {
-
+        //NOOP monocle only supports a single output
     }
 
     @Override
     public void ping(final WlShellSurfaceProxy emitter,
                      final int serial) {
-
+        emitter.pong(serial);
     }
 
     @Override
@@ -198,11 +205,11 @@ public class WaylandScreen implements NativeScreen, WlOutputEventsV2, WlBufferEv
                           final int edges,
                           final int width,
                           final int height) {
-
+        //NOOP monocle doesn't really do pointer based resizes
     }
 
     @Override
     public void popupDone(final WlShellSurfaceProxy emitter) {
-
+        //NOOP monocle assumes we're the only client on the system
     }
 }
