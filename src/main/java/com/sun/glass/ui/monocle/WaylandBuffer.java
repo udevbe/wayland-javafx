@@ -4,24 +4,17 @@ import org.freedesktop.wayland.client.WlBufferEvents;
 import org.freedesktop.wayland.client.WlBufferProxy;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 
 public class WaylandBuffer implements WlBufferEvents {
 
     private final WaylandBufferPool waylandBufferPool;
-    private final WaylandShmPool    shmPool;
-    private final int               width;
-    private final int               height;
+    private final WaylandShmBuffer  waylandShmBuffer;
 
     public WaylandBuffer(final WaylandBufferPool waylandBufferPool,
-                         final WaylandShmPool shmPool,
-                         final int width,
-                         final int height) {
+                         final WaylandShmBuffer shmPool) {
         this.waylandBufferPool = waylandBufferPool;
-        this.shmPool = shmPool;
-        this.width = width;
-        this.height = height;
+        this.waylandShmBuffer = shmPool;
     }
 
     @Override
@@ -29,7 +22,7 @@ public class WaylandBuffer implements WlBufferEvents {
         if (this.waylandBufferPool.isDestroyed()) {
             emitter.destroy();
             try {
-                this.shmPool.close();
+                this.waylandShmBuffer.close();
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -40,15 +33,7 @@ public class WaylandBuffer implements WlBufferEvents {
         }
     }
 
-    public ByteBuffer getByteBuffer() {
-        return this.shmPool.asByteBuffer();
-    }
-
-    public int getWidth() {
-        return this.width;
-    }
-
-    public int getHeight() {
-        return this.height;
+    public WaylandShmBuffer getWaylandShmBuffer() {
+        return this.waylandShmBuffer;
     }
 }

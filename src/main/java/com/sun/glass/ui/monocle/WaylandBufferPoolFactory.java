@@ -5,34 +5,30 @@ import org.freedesktop.wayland.client.WlShmPoolProxy;
 import org.freedesktop.wayland.client.WlShmProxy;
 import org.freedesktop.wayland.shared.WlShmFormat;
 
-import java.io.IOException;
+import javax.inject.Inject;
 
 public class WaylandBufferPoolFactory {
 
-
-    private final WlShmProxy wlShmProxy;
-
-    public WaylandBufferPoolFactory(WlShmProxy wlShmProxy) {
-        this.wlShmProxy = wlShmProxy;
+    @Inject
+    WaylandBufferPoolFactory() {
     }
 
-    public WaylandBufferPool create(int width,
-                                    int height,
-                                    int size,
-                                    WlShmFormat shmFormat) throws IOException {
+    public WaylandBufferPool create(final WlShmProxy wlShmProxy,
+                                    final int width,
+                                    final int height,
+                                    final int size,
+                                    final WlShmFormat shmFormat) {
 
         final WaylandBufferPool waylandBufferPool = new WaylandBufferPool();
         for (int i = 0; i < size; i++) {
-            final int            bufferSize = width * height * 4;
-            final WaylandShmPool shmPool    = new WaylandShmPool(bufferSize);
+            final int              bufferSize = width * height * 4;
+            final WaylandShmBuffer shmPool    = new WaylandShmBuffer(bufferSize);
 
-            final WlShmPoolProxy wlShmPoolProxy = this.wlShmProxy.createPool(waylandBufferPool,
-                                                                             shmPool.getFileDescriptor(),
-                                                                             bufferSize);
+            final WlShmPoolProxy wlShmPoolProxy = wlShmProxy.createPool(waylandBufferPool,
+                                                                        shmPool.getFileDescriptor(),
+                                                                        bufferSize);
             final WlBufferProxy buffer = wlShmPoolProxy.createBuffer(new WaylandBuffer(waylandBufferPool,
-                                                                                       shmPool,
-                                                                                       width,
-                                                                                       height),
+                                                                                       shmPool),
                                                                      0,
                                                                      width,
                                                                      height,

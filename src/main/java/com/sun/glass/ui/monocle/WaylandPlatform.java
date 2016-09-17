@@ -3,6 +3,7 @@ package com.sun.glass.ui.monocle;
 import org.freedesktop.wayland.client.WlCompositorEventsV4;
 import org.freedesktop.wayland.client.WlCompositorProxy;
 import org.freedesktop.wayland.client.WlDisplayProxy;
+import org.freedesktop.wayland.client.WlOutputProxy;
 import org.freedesktop.wayland.client.WlRegistryEvents;
 import org.freedesktop.wayland.client.WlRegistryProxy;
 import org.freedesktop.wayland.client.WlSeatProxy;
@@ -22,14 +23,18 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
      */
 
     @Nonnull
+    private final WlDisplayProxy       wlDisplayProxy;
+    @Nonnull
     private final WaylandCursorFactory waylandCursorFactory;
     @Nonnull
     private final WaylandScreenFactory waylandScreenFactory;
 
     @Nonnull
-    private final WaylandSeatFactory waylandSeatFactory;
+    private final WaylandSeatFactory   waylandSeatFactory;
     @Nonnull
-    private final WaylandShmFactory  waylandShmFactory;
+    private final WaylandShmFactory    waylandShmFactory;
+    @Nonnull
+    private final WaylandOutputFactory waylandOutputFactory;
 
     @Nullable
     private WlCompositorProxy compositorProxy;
@@ -37,18 +42,24 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     private WlShellProxy      shellProxy;
 
     @Nullable
-    private WaylandShm waylandShm;
+    private WaylandShm    waylandShm;
+    private WaylandOutput waylandOutput;
 
     @Inject
-    WaylandPlatform(@Nonnull final WaylandCursorFactory waylandCursorFactory,
+    WaylandPlatform(@Nonnull final WlDisplayProxy wlDisplayProxy,
+                    @Nonnull final WaylandCursorFactory waylandCursorFactory,
                     @Nonnull final WaylandScreenFactory waylandScreenFactory,
                     @Nonnull final WaylandSeatFactory waylandSeatFactory,
                     @Nonnull final WaylandShmFactory waylandShmFactory,
-                    @Nonnull final WlDisplayProxy wlDisplayProxy) {
+                    @Nonnull final WaylandOutputFactory waylandOutputFactory) {
+        this.wlDisplayProxy = wlDisplayProxy;
         this.waylandCursorFactory = waylandCursorFactory;
         this.waylandScreenFactory = waylandScreenFactory;
         this.waylandSeatFactory = waylandSeatFactory;
         this.waylandShmFactory = waylandShmFactory;
+        this.waylandOutputFactory = waylandOutputFactory;
+
+
     }
 
     protected InputDeviceRegistry createInputDeviceRegistry() {
@@ -60,12 +71,20 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     }
 
     protected WaylandScreen createScreen() {
-        //check if we have at least the minimum required globals (any conform wayland compositor is required to provide these)
-        assert this.compositorProxy != null;
-        assert this.shellProxy != null;
+        //make sure we receive all globals
+        while (this.waylandOutput == null ||
+               this.compositorProxy == null ||
+               this.shellProxy == null ||
+               this.waylandShm == null) {
+            //We keep on tripping (pun intended) until we have received all globals.
+            //FIXME safe guard so we can bail if required globals are never received
+            this.wlDisplayProxy.roundtrip();
+        }
 
-        return this.waylandScreenFactory.create(this.compositorProxy,
-                                                this.shellProxy);
+        return this.waylandScreenFactory.create(this.waylandOutput,
+                                                this.compositorProxy,
+                                                this.shellProxy,
+                                                this.waylandShm);
     }
 
     @Override
@@ -73,7 +92,6 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
                        final int name,
                        @Nonnull final String interface_,
                        final int version) {
-        //compositor, shm and shell are the absolute minimum globals we require to function.
         if (WlCompositorProxy.INTERFACE_NAME.equals(interface_)) {
             this.compositorProxy = emitter.bind(name,
                                                 WlCompositorProxy.class,
@@ -94,6 +112,10 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
                                            new WlShellEvents() {
                                            });
         }
+        else if (WlOutputProxy.INTERFACE_NAME.equals(interface_)) {
+            this.waylandOutput = this.waylandOutputFactory.create(name,
+                                                                  emitter);
+        }
         else if (WlSeatProxy.INTERFACE_NAME.equals(interface_)) {
             //TODO keep seats stored somewhere? (Is this needed to avoid gc?)
             this.waylandSeatFactory.create(emitter,
@@ -108,10 +130,5 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     public void globalRemove(final WlRegistryProxy emitter,
                              final int name) {
         //TODO listen for eg seat removals
-    }
-
-    @Nullable
-    public WaylandShm getWaylandShm() {
-        return this.waylandShm;
     }
 }

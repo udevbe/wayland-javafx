@@ -18,11 +18,6 @@ public class WaylandPlatformFactory extends NativePlatformFactory {
         final WlDisplayProxy   wlDisplayProxy   = waylandComponent.wlDisplayProxy();
 
         wlDisplayProxy.getRegistry(waylandPlatform);
-        //make sure we receive all globals
-        wlDisplayProxy.roundtrip();
-        //we should have received the shm proxy by now
-        assert waylandPlatform.getWaylandShm() != null;
-        wlDisplayProxy.roundtrip();
 
         return waylandPlatform;
     }

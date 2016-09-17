@@ -1,40 +1,34 @@
 package com.sun.glass.ui.monocle;
 
 import com.google.auto.factory.AutoFactory;
+import com.google.auto.factory.Provided;
 import com.sun.glass.ui.Pixels;
-import org.freedesktop.wayland.client.WlBufferEvents;
 import org.freedesktop.wayland.client.WlBufferProxy;
 import org.freedesktop.wayland.client.WlCompositorProxy;
-import org.freedesktop.wayland.client.WlOutputEventsV2;
 import org.freedesktop.wayland.client.WlOutputProxy;
-import org.freedesktop.wayland.client.WlRegistryProxy;
 import org.freedesktop.wayland.client.WlShellProxy;
 import org.freedesktop.wayland.client.WlShellSurfaceEvents;
 import org.freedesktop.wayland.client.WlShellSurfaceProxy;
 import org.freedesktop.wayland.client.WlSurfaceEventsV4;
 import org.freedesktop.wayland.client.WlSurfaceProxy;
+import org.freedesktop.wayland.shared.WlShellSurfaceFullscreenMethod;
+import org.freedesktop.wayland.shared.WlShmFormat;
 
 import javax.annotation.Nonnull;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 @AutoFactory(allowSubclasses = true,
-             className = "PrivateWaylandScreenFactory")
+             className = "WaylandScreenFactory")
 public class WaylandScreen implements NativeScreen,
-                                      WlOutputEventsV2,
-                                      WlBufferEvents,
                                       WlSurfaceEventsV4,
                                       WlShellSurfaceEvents {
 
-    private final WlSurfaceProxy      wlSurfaceProxy;
-    private final WlShellSurfaceProxy wlShellSurfaceProxy;
-    private final WlOutputProxy       wlOutputProxy;
-    private       int                 width;
-    private       int                 height;
-    private       int                 dpi;
-    private       int                 physicalWidth;
-    private       int                 physicalHeight;
-    private int scale = 1;
+    private final WlSurfaceProxy    wlSurfaceProxy;
+    private final WaylandOutput     waylandOutput;
+    private final WaylandBufferPool waylandBufferPool;
+    private       int               dpi;
+    private       WlBufferProxy     wlBufferProxy;
 
     /*
      * A NativeScreen provides a way for JavaFX to get information about the screen it is using and to put pixels on
@@ -53,17 +47,38 @@ public class WaylandScreen implements NativeScreen,
      * pipeline, window content is stored internally in an OpenGL Texture.
      */
 
-    WaylandScreen(final int name,
-                  final WlRegistryProxy wlRegistryProxy,
+    WaylandScreen(@Provided final WaylandBufferPoolFactory waylandBufferPoolFactory,
+                  final WaylandOutput waylandOutput,
                   final WlCompositorProxy wlCompositorProxy,
-                  final WlShellProxy wlShellProxy) {
-        this.wlOutputProxy = wlRegistryProxy.bind(name,
-                                                  WlOutputProxy.class,
-                                                  WlOutputEventsV2.VERSION,
-                                                  this);
+                  final WlShellProxy wlShellProxy,
+                  final WaylandShm waylandShm) {
+        this.waylandOutput = waylandOutput;
+
         this.wlSurfaceProxy = wlCompositorProxy.createSurface(this);
-        this.wlShellSurfaceProxy = wlShellProxy.getShellSurface(this,
-                                                                this.wlSurfaceProxy);
+        final WlShellSurfaceProxy shellSurface = wlShellProxy.getShellSurface(this,
+                                                                              this.wlSurfaceProxy);
+        //notify the compositor we want to run fullscreen
+        shellSurface.setFullscreen(WlShellSurfaceFullscreenMethod.DRIVER.value,
+                                   0,
+                                   waylandOutput.getWlOutputProxy());
+
+        this.waylandBufferPool = waylandBufferPoolFactory.create(waylandShm.getWlShmProxy(),
+                                                                 getWidth(),
+                                                                 getHeight(),
+                                                                 2,
+                                                                 WlShmFormat.ARGB8888);
+        this.wlBufferProxy = this.waylandBufferPool.popBuffer();
+        this.wlSurfaceProxy.attach(this.wlBufferProxy,
+                                   0,
+                                   0);
+    }
+
+    public int getWidth() {
+        return this.waylandOutput.getWidth();
+    }
+
+    public int getHeight() {
+        return this.waylandOutput.getHeight();
     }
 
     public int getDepth() {
@@ -74,16 +89,29 @@ public class WaylandScreen implements NativeScreen,
         return Pixels.Format.BYTE_ARGB;
     }
 
-    public int getWidth() {
-        return this.width;
-    }
-
-    public int getHeight() {
-        return this.height;
-    }
-
     public int getDPI() {
+        if (0 == this.dpi) {
+            updateDpi();
+        }
         return this.dpi;
+    }
+
+    private void updateDpi() {
+        if (0 >= this.waylandOutput.getPhysicalWidth() ||
+            0 >= this.waylandOutput.getPhysicalHeight() ||
+            0 >= this.waylandOutput.getWidth() ||
+            0 >= this.waylandOutput.getHeight()) {
+            //not all values have a sensible value, return something standard.
+            this.dpi = 96;
+        }
+        else {
+            final double diagonalScreenMM = Math.sqrt((this.waylandOutput.getPhysicalWidth() * this.waylandOutput.getPhysicalWidth()) +
+                                                      (this.waylandOutput.getPhysicalHeight() * this.waylandOutput.getPhysicalHeight()));
+            final double diagonalPixels = Math.sqrt((this.waylandOutput.getWidth() * this.waylandOutput.getWidth()) +
+                                                    (this.waylandOutput.getHeight() * this.waylandOutput.getHeight()));
+            final double dpMM = diagonalPixels / diagonalScreenMM;
+            this.dpi = (int) (dpMM * 25.4);
+        }
     }
 
     public long getNativeHandle() {
@@ -100,11 +128,28 @@ public class WaylandScreen implements NativeScreen,
                              final int width,
                              final int height,
                              final float alpha) {
+        final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
+        final ByteBuffer byteBuffer = waylandBuffer.getWaylandShmBuffer()
+                                                   .asByteBuffer();
+        //TODO use pixman native library to update our buffer for best performance
 
+        this.wlSurfaceProxy.damage(x,
+                                   y,
+                                   width,
+                                   height);
     }
 
     public void swapBuffers() {
+        this.wlSurfaceProxy.commit();
+        //TODO the current this.wlBufferProxy has been submitted to the compositor and should not be written to.
+        //-> mark this buffer as "in use".
 
+        //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
+        //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
+        this.wlBufferProxy = this.waylandBufferPool.popBuffer();
+        this.wlSurfaceProxy.attach(this.wlBufferProxy,
+                                   0,
+                                   0);
     }
 
     public ByteBuffer getScreenCapture() {
@@ -112,74 +157,7 @@ public class WaylandScreen implements NativeScreen,
     }
 
     public float getScale() {
-        return this.scale;
-    }
-
-    @Override
-    public void geometry(final WlOutputProxy emitter,
-                         final int x,
-                         final int y,
-                         final int physicalWidth,
-                         final int physicalHeight,
-                         final int subpixel,
-                         @Nonnull final String make,
-                         @Nonnull final String model,
-                         final int transform) {
-        this.physicalWidth = physicalWidth;
-        this.physicalHeight = physicalHeight;
-
-        if (emitter.getVersion() < WlOutputEventsV2.VERSION) {
-            updateDpi();
-        }
-    }
-
-    private void updateDpi() {
-        if (0 <= this.physicalWidth ||
-            0 <= this.physicalHeight ||
-            0 <= this.width ||
-            0 <= this.height) {
-            //not all values have a sensible value, return something standard.
-            this.dpi = 96;
-        }
-        else {
-            final double diagonalScreenMM = Math.sqrt((this.physicalWidth * this.physicalWidth) + (this.physicalHeight * this.physicalHeight));
-            final double diagonalPixels   = Math.sqrt((this.width * this.width) + (this.height * this.height));
-            final double dpMM             = diagonalPixels / diagonalScreenMM;
-            this.dpi = (int) (dpMM * 25.4);
-        }
-    }
-
-    @Override
-    public void mode(final WlOutputProxy emitter,
-                     final int flags,
-                     final int width,
-                     final int height,
-                     final int refresh) {
-        this.width = width;
-        this.height = height;
-
-        //we're going to take it easy and not support buffer resizing for now
-
-
-        if (emitter.getVersion() < WlOutputEventsV2.VERSION) {
-            updateDpi();
-        }
-    }
-
-    @Override
-    public void done(final WlOutputProxy emitter) {
-        updateDpi();
-    }
-
-    @Override
-    public void scale(final WlOutputProxy emitter,
-                      final int factor) {
-        this.scale = factor;
-    }
-
-    @Override
-    public void release(final WlBufferProxy emitter) {
-
+        return this.waylandOutput.getScaleFactor();
     }
 
     @Override
@@ -205,11 +183,11 @@ public class WaylandScreen implements NativeScreen,
                           final int edges,
                           final int width,
                           final int height) {
-        //NOOP monocle doesn't really do pointer based resizes
+        //NOOP monocle doesn't do pointer based resizes
     }
 
     @Override
     public void popupDone(final WlShellSurfaceProxy emitter) {
-        //NOOP monocle assumes we're the only client on the system
+        //NOOP monocle assumes we're the only (wayland) client on the system
     }
 }

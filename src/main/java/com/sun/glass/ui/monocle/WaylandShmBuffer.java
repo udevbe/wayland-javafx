@@ -21,24 +21,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public final class WaylandShmPool implements Closeable {
+public final class WaylandShmBuffer implements Closeable {
     private int        fd;
     private int        size;
     private ByteBuffer buffer;
 
-    public WaylandShmPool(final int size) throws IOException {
+    public WaylandShmBuffer(final int size) {
         this.fd = createTmpFileNative();
         this.size = size;
-        try {
-            truncateNative(getFd(),
-                           getSize());
-            this.buffer = map(getFd(),
-                              getSize());
-        }
-        catch (final IOException e) {
-            closeNative(getFd());
-            throw e;
-        }
+        truncateNative(getFd(),
+                       getSize());
+        this.buffer = map(getFd(),
+                          getSize());
     }
 
     private static int createTmpFileNative() {
@@ -89,15 +83,11 @@ public final class WaylandShmPool implements Closeable {
     }
 
     private static ByteBuffer map(final int fd,
-                                  final int size) throws IOException {
+                                  final int size) {
         final ByteBuffer tmpBuff = mapNative(fd,
                                              size);
         tmpBuff.order(ByteOrder.nativeOrder());
         return tmpBuff;
-    }
-
-    private static void closeNative(final int fd) {
-        Libc.close(fd);
     }
 
     private static ByteBuffer mapNative(final int fd,
@@ -154,6 +144,10 @@ public final class WaylandShmPool implements Closeable {
         }
 
         return this.buffer;
+    }
+
+    private static void closeNative(final int fd) {
+        Libc.close(fd);
     }
 }
 
