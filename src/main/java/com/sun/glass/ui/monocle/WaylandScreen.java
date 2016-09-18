@@ -129,9 +129,10 @@ public class WaylandScreen implements NativeScreen,
                              final int height,
                              final float alpha) {
         final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
-        final ByteBuffer byteBuffer = waylandBuffer.getWaylandShmBuffer()
-                                                   .asByteBuffer();
-        //TODO use pixman native library to update our buffer for best performance
+
+        //TODO use pixman native library to update our buffer
+        final long pixmanImage = waylandBuffer.getPixmanImage();
+        //Libpixman1.pixman_image_composite();
 
         this.wlSurfaceProxy.damage(x,
                                    y,

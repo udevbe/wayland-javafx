@@ -22,7 +22,9 @@ public class WaylandBufferPoolFactory {
         final WaylandBufferPool waylandBufferPool = new WaylandBufferPool();
         for (int i = 0; i < size; i++) {
             final int              bufferSize = width * height * 4;
-            final WaylandShmBuffer shmPool    = new WaylandShmBuffer(bufferSize);
+            final WaylandShmBuffer shmPool = new WaylandShmBuffer(bufferSize,
+                                                                  width,
+                                                                  height);
 
             final WlShmPoolProxy wlShmPoolProxy = wlShmProxy.createPool(waylandBufferPool,
                                                                         shmPool.getFileDescriptor(),
