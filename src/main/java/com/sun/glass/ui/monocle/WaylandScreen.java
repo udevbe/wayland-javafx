@@ -3,6 +3,8 @@ package com.sun.glass.ui.monocle;
 import com.google.auto.factory.AutoFactory;
 import com.google.auto.factory.Provided;
 import com.sun.glass.ui.Pixels;
+import org.freedesktop.jaccall.JNI;
+import org.freedesktop.jaccall.Pointer;
 import org.freedesktop.wayland.client.WlBufferProxy;
 import org.freedesktop.wayland.client.WlCompositorProxy;
 import org.freedesktop.wayland.client.WlOutputProxy;
@@ -17,6 +19,9 @@ import org.freedesktop.wayland.shared.WlShmFormat;
 import javax.annotation.Nonnull;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+
+import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_a8r8g8b8;
 
 @AutoFactory(allowSubclasses = true,
              className = "WaylandScreenFactory")
@@ -114,14 +119,17 @@ public class WaylandScreen implements NativeScreen,
         }
     }
 
+    @Override
     public long getNativeHandle() {
         return this.wlSurfaceProxy.getPointer();
     }
 
+    @Override
     public void shutdown() {
 
     }
 
+    @Override
     public void uploadPixels(final Buffer b,
                              final int x,
                              final int y,
@@ -131,8 +139,33 @@ public class WaylandScreen implements NativeScreen,
         final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
 
         //TODO use pixman native library to update our buffer
-        final long pixmanImage = waylandBuffer.getPixmanImage();
+
+        final long pixels;
+        if (b.isDirect()) {
+            pixels = JNI.unwrap(b);
+        }
+        else {
+            if (b instanceof ByteBuffer) {
+                final ByteBuffer bb = (ByteBuffer) b;
+                //TODO call bb.hasArray()?
+                pixels = Pointer.nref(bb.array()).address;
+            }
+            else {
+                //int buffer
+                final IntBuffer ib = ((IntBuffer) b);
+                pixels = Pointer.nref(ib.array()).address;
+            }
+        }
+
+        final long src = Libpixman1.pixman_image_create_bits(PIXMAN_a8r8g8b8,
+                                                             width,
+                                                             height,
+                                                             pixels,
+                                                             width * 4);
+        final long dst = waylandBuffer.getPixmanImage();
+
         //Libpixman1.pixman_image_composite();
+
 
         this.wlSurfaceProxy.damage(x,
                                    y,
@@ -140,6 +173,7 @@ public class WaylandScreen implements NativeScreen,
                                    height);
     }
 
+    @Override
     public void swapBuffers() {
         this.wlSurfaceProxy.commit();
         //TODO the current this.wlBufferProxy has been submitted to the compositor and should not be written to.
