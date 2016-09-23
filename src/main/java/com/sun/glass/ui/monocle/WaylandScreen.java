@@ -7,6 +7,7 @@ import org.freedesktop.jaccall.JNI;
 import org.freedesktop.jaccall.Pointer;
 import org.freedesktop.wayland.client.WlBufferProxy;
 import org.freedesktop.wayland.client.WlCompositorProxy;
+import org.freedesktop.wayland.client.WlDisplayProxy;
 import org.freedesktop.wayland.client.WlOutputProxy;
 import org.freedesktop.wayland.client.WlShellProxy;
 import org.freedesktop.wayland.client.WlShellSurfaceEvents;
@@ -21,7 +22,8 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_a8r8g8b8;
+import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_OP_OVER;
+import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_b8g8r8a8;
 
 @AutoFactory(allowSubclasses = true,
              className = "WaylandScreenFactory")
@@ -30,6 +32,7 @@ public class WaylandScreen implements NativeScreen,
                                       WlShellSurfaceEvents {
 
     private final WlSurfaceProxy    wlSurfaceProxy;
+    private final WlDisplayProxy    display;
     private final WaylandOutput     waylandOutput;
     private final WaylandBufferPool waylandBufferPool;
     private       int               dpi;
@@ -53,10 +56,12 @@ public class WaylandScreen implements NativeScreen,
      */
 
     WaylandScreen(@Provided final WaylandBufferPoolFactory waylandBufferPoolFactory,
+                  @Provided final WlDisplayProxy wlDisplayProxy,
                   final WaylandOutput waylandOutput,
                   final WlCompositorProxy wlCompositorProxy,
                   final WlShellProxy wlShellProxy,
                   final WaylandShm waylandShm) {
+        this.display = wlDisplayProxy;
         this.waylandOutput = waylandOutput;
 
         this.wlSurfaceProxy = wlCompositorProxy.createSurface(this);
@@ -91,7 +96,7 @@ public class WaylandScreen implements NativeScreen,
     }
 
     public int getNativeFormat() {
-        return Pixels.Format.BYTE_ARGB;
+        return Pixels.Format.BYTE_BGRA_PRE;
     }
 
     public int getDPI() {
@@ -136,9 +141,23 @@ public class WaylandScreen implements NativeScreen,
                              final int width,
                              final int height,
                              final float alpha) {
-        final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
 
-        //TODO use pixman native library to update our buffer
+        //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
+        //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
+
+        if (this.wlBufferProxy == null) {
+            this.wlBufferProxy = this.waylandBufferPool.popBuffer();
+            this.wlSurfaceProxy.attach(this.wlBufferProxy,
+                                       0,
+                                       0);
+            this.wlSurfaceProxy.damage(x,
+                                       y,
+                                       width,
+                                       height);
+        }
+
+
+        final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
 
         final long pixels;
         if (b.isDirect()) {
@@ -147,30 +166,51 @@ public class WaylandScreen implements NativeScreen,
         else {
             if (b instanceof ByteBuffer) {
                 final ByteBuffer bb = (ByteBuffer) b;
-                //TODO call bb.hasArray()?
-                pixels = Pointer.nref(bb.array()).address;
+                final byte[]     array;
+                if (bb.hasArray()) {
+                    array = bb.array();
+                }
+                else {
+                    array = new byte[bb.capacity()];
+                    bb.rewind();
+                    bb.get(array);
+                }
+                pixels = Pointer.nref(array).address;
             }
             else {
-                //int buffer
                 final IntBuffer ib = ((IntBuffer) b);
-                pixels = Pointer.nref(ib.array()).address;
+                final int[]     array;
+                if (ib.hasArray()) {
+                    array = ib.array();
+                }
+                else {
+                    array = new int[ib.capacity()];
+                    ib.rewind();
+                    ib.get(array);
+                }
+                pixels = Pointer.nref(array).address;
             }
         }
 
-        final long src = Libpixman1.pixman_image_create_bits(PIXMAN_a8r8g8b8,
+        final long src = Libpixman1.pixman_image_create_bits(PIXMAN_b8g8r8a8,
                                                              width,
                                                              height,
                                                              pixels,
                                                              width * 4);
         final long dst = waylandBuffer.getPixmanImage();
 
-        //Libpixman1.pixman_image_composite();
-
-
-        this.wlSurfaceProxy.damage(x,
-                                   y,
-                                   width,
-                                   height);
+        Libpixman1.pixman_image_composite(PIXMAN_OP_OVER,
+                                          src,
+                                          0L,
+                                          dst,
+                                          (short) 0,
+                                          (short) 0,
+                                          (short) 0,
+                                          (short) 0,
+                                          (short) x,
+                                          (short) y,
+                                          (short) width,
+                                          (short) height);
     }
 
     @Override
@@ -178,13 +218,8 @@ public class WaylandScreen implements NativeScreen,
         this.wlSurfaceProxy.commit();
         //TODO the current this.wlBufferProxy has been submitted to the compositor and should not be written to.
         //-> mark this buffer as "in use".
-
-        //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
-        //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
-        this.wlBufferProxy = this.waylandBufferPool.popBuffer();
-        this.wlSurfaceProxy.attach(this.wlBufferProxy,
-                                   0,
-                                   0);
+        this.wlBufferProxy = null;
+        this.display.roundtrip();
     }
 
     public ByteBuffer getScreenCapture() {

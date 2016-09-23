@@ -18,14 +18,14 @@
         <maven.compiler.executable>javac</maven.compiler.executable>
 
         <!-- javafx -->
-        <jfxrt.path>/home/zubzub/hg/openjfx9-devrt/build/sdk/lib/jfxrt.jar</jfxrt.path>
+        <jfxrt.path>/home/zubzub/hg/openjfx8-devrt/build/sdk/rt/lib/ext/jfxrt.jar</jfxrt.path>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>openjfx</artifactId>
-            <version>9</version>
+            <version>8</version>
             <scope>system</scope>
             <systemPath>${jfxrt.path}</systemPath>
         </dependency>
@@ -84,7 +84,19 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
 </project>

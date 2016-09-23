@@ -9,12 +9,23 @@ import org.freedesktop.jaccall.Unsigned;
 public class Libpixman1 {
 
     public static final int PIXMAN_TYPE_ARGB = 2;
-    public static final int PIXMAN_a8r8g8b8  = PIXMAN_FORMAT(32,
-                                                             PIXMAN_TYPE_ARGB,
-                                                             8,
-                                                             8,
-                                                             8,
-                                                             8);
+    public static final int PIXMAN_TYPE_BGRA = 8;
+
+    public static final int PIXMAN_b8g8r8a8 = PIXMAN_FORMAT(32,
+                                                            PIXMAN_TYPE_BGRA,
+                                                            8,
+                                                            8,
+                                                            8,
+                                                            8);
+    public static final int PIXMAN_a8r8g8b8 = PIXMAN_FORMAT(32,
+                                                            PIXMAN_TYPE_ARGB,
+                                                            8,
+                                                            8,
+                                                            8,
+                                                            8);
+
+    public static final int PIXMAN_OP_OVER = 0x03;
+
 
     static {
         new Libpixman1_Symbols().link();

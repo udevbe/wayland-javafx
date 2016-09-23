@@ -4,11 +4,11 @@ package com.sun.glass.ui.monocle;
 import org.freedesktop.wayland.client.WlBufferProxy;
 import org.freedesktop.wayland.client.WlShmPoolEvents;
 
-import java.util.LinkedList;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class WaylandBufferPool implements WlShmPoolEvents {
 
-    private LinkedList<WlBufferProxy> bufferQueue = new LinkedList<WlBufferProxy>();
+    private ArrayBlockingQueue<WlBufferProxy> bufferQueue = new ArrayBlockingQueue<>(2);
     private boolean destroyed;
 
     public void queueBuffer(WlBufferProxy buffer) {
@@ -24,7 +24,12 @@ public class WaylandBufferPool implements WlShmPoolEvents {
             throw new IllegalStateException("Pool destroyed");
         }
 
-        return bufferQueue.pop();
+        try {
+            return bufferQueue.take();
+        }
+        catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void destroy() {

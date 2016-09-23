@@ -1,6 +1,6 @@
 package com.sun.glass.ui.monocle;
 
-import org.freedesktop.wayland.client.WlCompositorEventsV4;
+import org.freedesktop.wayland.client.WlCompositorEventsV3;
 import org.freedesktop.wayland.client.WlCompositorProxy;
 import org.freedesktop.wayland.client.WlDisplayProxy;
 import org.freedesktop.wayland.client.WlOutputProxy;
@@ -95,8 +95,8 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
         if (WlCompositorProxy.INTERFACE_NAME.equals(interface_)) {
             this.compositorProxy = emitter.bind(name,
                                                 WlCompositorProxy.class,
-                                                WlCompositorEventsV4.VERSION,
-                                                new WlCompositorEventsV4() {
+                                                WlCompositorEventsV3.VERSION,
+                                                new WlCompositorEventsV3() {
                                                 });
         }
         else if (WlShmProxy.INTERFACE_NAME.equals(interface_)) {

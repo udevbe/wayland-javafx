@@ -3,7 +3,7 @@ package com.sun.glass.ui.monocle;
 import com.google.auto.factory.AutoFactory;
 import com.google.auto.factory.Provided;
 import org.freedesktop.wayland.client.WlRegistryProxy;
-import org.freedesktop.wayland.client.WlSeatEventsV5;
+import org.freedesktop.wayland.client.WlSeatEventsV3;
 import org.freedesktop.wayland.client.WlSeatProxy;
 import org.freedesktop.wayland.shared.WlSeatCapability;
 
@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @AutoFactory(allowSubclasses = true)
-public class WaylandSeat implements WlSeatEventsV5 {
+public class WaylandSeat implements WlSeatEventsV3 {
 
     @Nonnull
     private final WlSeatProxy                       wlSeatProxy;
@@ -45,7 +45,7 @@ public class WaylandSeat implements WlSeatEventsV5 {
         this.inputDeviceRegistry = inputDeviceRegistry;
         this.wlSeatProxy = registryProxy.bind(name,
                                               WlSeatProxy.class,
-                                              WlSeatEventsV5.VERSION,
+                                              WlSeatEventsV3.VERSION,
                                               this);
     }
 
