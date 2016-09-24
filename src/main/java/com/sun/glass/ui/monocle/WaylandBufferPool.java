@@ -11,8 +11,8 @@ public class WaylandBufferPool implements WlShmPoolEvents {
     private ArrayBlockingQueue<WlBufferProxy> bufferQueue = new ArrayBlockingQueue<>(2);
     private boolean destroyed;
 
-    public void queueBuffer(WlBufferProxy buffer) {
-        if (destroyed) {
+    public void queueBuffer(final WlBufferProxy buffer) {
+        if (this.destroyed) {
             throw new IllegalStateException("Pool destroyed");
         }
 
@@ -20,31 +20,24 @@ public class WaylandBufferPool implements WlShmPoolEvents {
     }
 
     public WlBufferProxy popBuffer() {
-        if (destroyed) {
+        if (this.destroyed) {
             throw new IllegalStateException("Pool destroyed");
         }
 
-        try {
-            return bufferQueue.take();
-        }
-        catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        return this.bufferQueue.poll();
     }
 
     public void destroy() {
-        if (destroyed) {
+        if (this.destroyed) {
             throw new IllegalStateException("Pool destroyed");
         }
 
-        for (WlBufferProxy wlBufferProxy : bufferQueue) {
-            wlBufferProxy.destroy();
-        }
-        bufferQueue.clear();
+        this.bufferQueue.forEach(WlBufferProxy::destroy);
+        this.bufferQueue.clear();
         this.destroyed = true;
     }
 
     public boolean isDestroyed() {
-        return destroyed;
+        return this.destroyed;
     }
 }

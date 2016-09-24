@@ -1,7 +1,6 @@
 package com.sun.glass.ui.monocle;
 
 import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import com.sun.glass.events.MouseEvent;
 import org.freedesktop.wayland.client.WlPointerEventsV5;
 import org.freedesktop.wayland.client.WlPointerProxy;
@@ -24,16 +23,12 @@ public class WaylandInputDevicePointer implements InputDevice, WlPointerEventsV5
     //<-
 
     @Nonnull
-    private final WaylandPlatform waylandPlatform;
-    @Nonnull
-    private final WlPointerProxy  wlPointerProxy;
+    private final WlPointerProxy wlPointerProxy;
 
     //the protocol version supported by the compositor for this object
     private final int version;
 
-    WaylandInputDevicePointer(@Provided @Nonnull final WaylandPlatform waylandPlatform,
-                              @Nonnull final WlSeatProxy wlSeatProxy) {
-        this.waylandPlatform = waylandPlatform;
+    WaylandInputDevicePointer(@Nonnull final WlSeatProxy wlSeatProxy) {
         this.wlPointerProxy = wlSeatProxy.getPointer(this);
         this.version = this.wlPointerProxy.getVersion();
     }
@@ -84,10 +79,9 @@ public class WaylandInputDevicePointer implements InputDevice, WlPointerEventsV5
                        final int time,
                        @Nonnull final Fixed surfaceX,
                        @Nonnull final Fixed surfaceY) {
-        this.waylandPlatform.getRunnableProcessor()
-                            .invokeLater(() -> handleMotion(time,
-                                                            surfaceX,
-                                                            surfaceY));
+        RunnableProcessor.runLater(() -> handleMotion(time,
+                                                      surfaceX,
+                                                      surfaceY));
     }
 
     private void handleMotion(final int time,
@@ -113,11 +107,10 @@ public class WaylandInputDevicePointer implements InputDevice, WlPointerEventsV5
                        final int time,
                        final int button,
                        final int state) {
-        this.waylandPlatform.getRunnableProcessor()
-                            .invokeLater(() -> handleButton(serial,
-                                                            time,
-                                                            button,
-                                                            state));
+        RunnableProcessor.runLater(() -> handleButton(serial,
+                                                      time,
+                                                      button,
+                                                      state));
     }
 
     private void handleButton(final int serial,
@@ -157,10 +150,9 @@ public class WaylandInputDevicePointer implements InputDevice, WlPointerEventsV5
                      final int time,
                      final int axis,
                      @Nonnull final Fixed value) {
-        this.waylandPlatform.getRunnableProcessor()
-                            .invokeLater(() -> handleAxis(time,
-                                                          axis,
-                                                          value));
+        RunnableProcessor.runLater(() -> handleAxis(time,
+                                                    axis,
+                                                    value));
     }
 
     private void handleAxis(final int time,

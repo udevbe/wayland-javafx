@@ -24,6 +24,7 @@ public class Libpixman1 {
                                                             8,
                                                             8);
 
+    public static final int PIXMAN_OP_SRC  = 0x01;
     public static final int PIXMAN_OP_OVER = 0x03;
 
 
@@ -51,6 +52,13 @@ public class Libpixman1 {
                                                        int height,
                                                        @Ptr(int.class) long bits,
                                                        int rowstride_bytes);
+
+    @Ptr
+    public static native long pixman_image_create_bits_no_clear(int format,
+                                                                int width,
+                                                                int height,
+                                                                @Ptr(int.class) long bits,
+                                                                int rowstride_bytes);
 
     public static native void pixman_image_composite(int op,
                                                      @Ptr long src,

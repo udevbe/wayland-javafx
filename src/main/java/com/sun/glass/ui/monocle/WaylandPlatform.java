@@ -58,8 +58,6 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
         this.waylandSeatFactory = waylandSeatFactory;
         this.waylandShmFactory = waylandShmFactory;
         this.waylandOutputFactory = waylandOutputFactory;
-
-
     }
 
     protected InputDeviceRegistry createInputDeviceRegistry() {

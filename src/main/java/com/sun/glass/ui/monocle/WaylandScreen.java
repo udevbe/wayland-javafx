@@ -6,6 +6,7 @@ import com.sun.glass.ui.Pixels;
 import org.freedesktop.jaccall.JNI;
 import org.freedesktop.jaccall.Pointer;
 import org.freedesktop.wayland.client.WlBufferProxy;
+import org.freedesktop.wayland.client.WlCallbackProxy;
 import org.freedesktop.wayland.client.WlCompositorProxy;
 import org.freedesktop.wayland.client.WlDisplayProxy;
 import org.freedesktop.wayland.client.WlOutputProxy;
@@ -21,9 +22,13 @@ import javax.annotation.Nonnull;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_OP_OVER;
-import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_b8g8r8a8;
+import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_OP_SRC;
+import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_a8r8g8b8;
 
 @AutoFactory(allowSubclasses = true,
              className = "WaylandScreenFactory")
@@ -31,12 +36,16 @@ public class WaylandScreen implements NativeScreen,
                                       WlSurfaceEventsV4,
                                       WlShellSurfaceEvents {
 
+    private final ExecutorService waylandThread = Executors.newSingleThreadExecutor(r -> new Thread(r,
+                                                                                                    "wayland-event-loop"));
+
     private final WlSurfaceProxy    wlSurfaceProxy;
     private final WlDisplayProxy    display;
     private final WaylandOutput     waylandOutput;
     private final WaylandBufferPool waylandBufferPool;
     private       int               dpi;
     private       WlBufferProxy     wlBufferProxy;
+    private       WlCallbackProxy   wlCallbackProxy;
 
     /*
      * A NativeScreen provides a way for JavaFX to get information about the screen it is using and to put pixels on
@@ -81,6 +90,7 @@ public class WaylandScreen implements NativeScreen,
         this.wlSurfaceProxy.attach(this.wlBufferProxy,
                                    0,
                                    0);
+        this.waylandThread.submit(this::loop);
     }
 
     public int getWidth() {
@@ -89,6 +99,11 @@ public class WaylandScreen implements NativeScreen,
 
     public int getHeight() {
         return this.waylandOutput.getHeight();
+    }
+
+    private void loop() {
+        this.display.roundtrip();
+        this.waylandThread.submit(this::loop);
     }
 
     public int getDepth() {
@@ -142,84 +157,99 @@ public class WaylandScreen implements NativeScreen,
                              final int height,
                              final float alpha) {
 
-        //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
-        //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
+        this.waylandThread.submit(() -> {
+            //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
+            //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
 
-        if (this.wlBufferProxy == null) {
-            this.wlBufferProxy = this.waylandBufferPool.popBuffer();
-            this.wlSurfaceProxy.attach(this.wlBufferProxy,
-                                       0,
-                                       0);
-            this.wlSurfaceProxy.damage(x,
-                                       y,
-                                       width,
-                                       height);
-        }
+            if (this.wlBufferProxy == null) {
+                this.wlBufferProxy = this.waylandBufferPool.popBuffer();
+                this.wlSurfaceProxy.attach(this.wlBufferProxy,
+                                           0,
+                                           0);
+                this.wlSurfaceProxy.damage(x,
+                                           y,
+                                           width,
+                                           height);
+            }
 
 
-        final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
+            final WaylandBuffer waylandBuffer = (WaylandBuffer) this.wlBufferProxy.getImplementation();
 
-        final long pixels;
-        if (b.isDirect()) {
-            pixels = JNI.unwrap(b);
-        }
-        else {
-            if (b instanceof ByteBuffer) {
-                final ByteBuffer bb = (ByteBuffer) b;
-                final byte[]     array;
-                if (bb.hasArray()) {
-                    array = bb.array();
-                }
-                else {
-                    array = new byte[bb.capacity()];
-                    bb.rewind();
-                    bb.get(array);
-                }
-                pixels = Pointer.nref(array).address;
+            final long pixels;
+            if (b.isDirect()) {
+                pixels = JNI.unwrap(b);
             }
             else {
-                final IntBuffer ib = ((IntBuffer) b);
-                final int[]     array;
-                if (ib.hasArray()) {
-                    array = ib.array();
+                if (b instanceof ByteBuffer) {
+                    final ByteBuffer bb = (ByteBuffer) b;
+                    final byte[]     array;
+                    if (bb.hasArray()) {
+                        array = bb.array();
+                    }
+                    else {
+                        array = new byte[bb.capacity()];
+                        bb.rewind();
+                        bb.get(array);
+                    }
+                    pixels = Pointer.nref(array).address;
                 }
                 else {
-                    array = new int[ib.capacity()];
-                    ib.rewind();
-                    ib.get(array);
+                    final IntBuffer ib = ((IntBuffer) b);
+                    final int[]     array;
+                    if (ib.hasArray()) {
+                        array = ib.array();
+                    }
+                    else {
+                        array = new int[ib.capacity()];
+                        ib.rewind();
+                        ib.get(array);
+                    }
+                    pixels = Pointer.nref(array).address;
                 }
-                pixels = Pointer.nref(array).address;
             }
-        }
 
-        final long src = Libpixman1.pixman_image_create_bits(PIXMAN_b8g8r8a8,
-                                                             width,
-                                                             height,
-                                                             pixels,
-                                                             width * 4);
-        final long dst = waylandBuffer.getPixmanImage();
+            final long src = Libpixman1.pixman_image_create_bits_no_clear(PIXMAN_a8r8g8b8,
+                                                                          width,
+                                                                          height,
+                                                                          pixels,
+                                                                          width * 4);
+            final long dst = waylandBuffer.getPixmanImage();
 
-        Libpixman1.pixman_image_composite(PIXMAN_OP_OVER,
-                                          src,
-                                          0L,
-                                          dst,
-                                          (short) 0,
-                                          (short) 0,
-                                          (short) 0,
-                                          (short) 0,
-                                          (short) x,
-                                          (short) y,
-                                          (short) width,
-                                          (short) height);
+            Libpixman1.pixman_image_composite(alpha == 1.0f ? PIXMAN_OP_SRC : PIXMAN_OP_OVER,
+                                              src,
+                                              0L,
+                                              dst,
+                                              (short) 0,
+                                              (short) 0,
+                                              (short) 0,
+                                              (short) 0,
+                                              (short) x,
+                                              (short) y,
+                                              (short) width,
+                                              (short) height);
+        });
     }
 
     @Override
     public void swapBuffers() {
-        this.wlSurfaceProxy.commit();
-        //TODO the current this.wlBufferProxy has been submitted to the compositor and should not be written to.
-        //-> mark this buffer as "in use".
-        this.wlBufferProxy = null;
-        this.display.roundtrip();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        this.waylandThread.submit(() -> {
+            if (this.wlCallbackProxy != null) {
+                this.wlCallbackProxy.destroy();
+            }
+            this.wlCallbackProxy = this.wlSurfaceProxy.frame((emitter, callbackData) -> {
+                countDownLatch.countDown();
+            });
+            this.wlSurfaceProxy.commit();
+            this.wlBufferProxy = null;
+        });
+
+        try {
+            countDownLatch.await();
+        }
+        catch (final InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public ByteBuffer getScreenCapture() {

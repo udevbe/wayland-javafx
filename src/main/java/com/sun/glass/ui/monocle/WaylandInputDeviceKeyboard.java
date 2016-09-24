@@ -1,7 +1,6 @@
 package com.sun.glass.ui.monocle;
 
 import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import com.sun.glass.events.KeyEvent;
 import org.freedesktop.wayland.client.WlKeyboardEventsV5;
 import org.freedesktop.wayland.client.WlKeyboardProxy;
@@ -23,13 +22,9 @@ public class WaylandInputDeviceKeyboard implements InputDevice, WlKeyboardEvents
     //<-
 
     @Nonnull
-    private final WaylandPlatform waylandPlatform;
-    @Nonnull
     private final WlKeyboardProxy wlKeyboardProxy;
 
-    WaylandInputDeviceKeyboard(@Provided @Nonnull final WaylandPlatform waylandPlatform,
-                               @Nonnull final WlSeatProxy wlSeatProxy) {
-        this.waylandPlatform = waylandPlatform;
+    WaylandInputDeviceKeyboard(@Nonnull final WlSeatProxy wlSeatProxy) {
         this.wlKeyboardProxy = wlSeatProxy.getKeyboard(this);
     }
 
@@ -88,11 +83,10 @@ public class WaylandInputDeviceKeyboard implements InputDevice, WlKeyboardEvents
                     final int time,
                     final int key,
                     final int state) {
-        this.waylandPlatform.getRunnableProcessor()
-                            .invokeLater(() -> keyEvent(serial,
-                                                        time,
-                                                        key,
-                                                        state));
+        RunnableProcessor.runLater(() -> keyEvent(serial,
+                                                  time,
+                                                  key,
+                                                  state));
     }
 
     private void keyEvent(final int serial,
