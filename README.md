@@ -38,3 +38,4 @@ This library *will* make use of libraries not present in a standard jdk/jfx inst
  - Copy the ```./target/wayland-javafx-1.0.0-SNAPSHOT.jar``` to your local jdk installation's ext folder; eg. ```/usr/lib/jvm/oracle-jdk-bin-1.8/jre/lib/ext/```
 
  - Run your javafx application; eg. ```java -Dglass.platform=Monocle -Dmonocle.platform=Wayland -jar Ensemble8.jar```
+ - Make sure you delete ```wayland-javafx-1.0.0-SNAPSHOT.jar``` from your jdk installation once you're done as it might introduce some unwanted behavior in other programs.
