@@ -33,7 +33,7 @@ This library *will* make use of libraries not present in a standard jdk/jfx inst
 
  - Edit the pom.xml of the project and make sure ```<jfxrt.path>/home/zubzub/hg/openjfx8-devrt/build/sdk/rt/lib/ext/jfxrt.jar</jfxrt.path>```matches the jfxrt.jar of your monacle enabled and installed jfx library.
 
- - Build the project.
+ - Build the project. You will also need to build the latest SNAPSHOT versions of jaccall & wayland-java-bindings. (see links above).
  
  - Copy the ```./target/wayland-javafx-1.0.0-SNAPSHOT.jar``` to your local jdk installation's ext folder; eg. ```/usr/lib/jvm/oracle-jdk-bin-1.8/jre/lib/ext/```
 
