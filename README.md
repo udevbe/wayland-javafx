@@ -1,7 +1,7 @@
 # wayland-javafx
 A Wayland backend for JavaFX.
 
-This is a work a in progress. Currently nothing works. Hopefully this will soon change.
+This is a work a in progress. Currently software rendering, mouse & keyboard works (touch too but untested).
 
 TODO:
  - output using hw rendering (via wayland drm buffers).
