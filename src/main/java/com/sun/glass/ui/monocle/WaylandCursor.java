@@ -1,10 +1,8 @@
 package com.sun.glass.ui.monocle;
 
 
-import com.google.auto.factory.AutoFactory;
 import com.sun.glass.ui.Size;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandCursor extends NativeCursor {
 
     WaylandCursor() {

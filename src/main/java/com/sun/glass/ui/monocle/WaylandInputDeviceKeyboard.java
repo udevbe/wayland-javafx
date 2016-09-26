@@ -1,6 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
 import com.sun.glass.events.KeyEvent;
 import org.freedesktop.wayland.client.WlKeyboardEventsV5;
 import org.freedesktop.wayland.client.WlKeyboardProxy;
@@ -11,7 +10,6 @@ import org.freedesktop.wayland.shared.WlKeyboardKeyState;
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandInputDeviceKeyboard implements InputDevice, WlKeyboardEventsV5 {
 
     //should be accessed by jfx thread only! ->

@@ -5,11 +5,8 @@ import org.freedesktop.wayland.client.WlShmPoolProxy;
 import org.freedesktop.wayland.client.WlShmProxy;
 import org.freedesktop.wayland.shared.WlShmFormat;
 
-import javax.inject.Inject;
-
 public class WaylandBufferPoolFactory {
 
-    @Inject
     WaylandBufferPoolFactory() {
     }
 
@@ -21,7 +18,7 @@ public class WaylandBufferPoolFactory {
 
         final WaylandBufferPool waylandBufferPool = new WaylandBufferPool();
         for (int i = 0; i < size; i++) {
-            final int              bufferSize = width * height * 4;
+            final int bufferSize = width * height * 4;
             final WaylandShmBuffer shmPool = new WaylandShmBuffer(bufferSize,
                                                                   width,
                                                                   height);

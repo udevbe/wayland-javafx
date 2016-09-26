@@ -13,7 +13,6 @@ import org.freedesktop.wayland.client.WlShmProxy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.inject.Inject;
 
 public class WaylandPlatform extends NativePlatform implements WlRegistryEvents {
 
@@ -23,18 +22,7 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
      */
 
     @Nonnull
-    private final WlDisplayProxy       wlDisplayProxy;
-    @Nonnull
-    private final WaylandCursorFactory waylandCursorFactory;
-    @Nonnull
-    private final WaylandScreenFactory waylandScreenFactory;
-
-    @Nonnull
-    private final WaylandSeatFactory   waylandSeatFactory;
-    @Nonnull
-    private final WaylandShmFactory    waylandShmFactory;
-    @Nonnull
-    private final WaylandOutputFactory waylandOutputFactory;
+    private final WlDisplayProxy wlDisplayProxy;
 
     @Nullable
     private WlCompositorProxy compositorProxy;
@@ -45,19 +33,8 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     private WaylandShm    waylandShm;
     private WaylandOutput waylandOutput;
 
-    @Inject
-    WaylandPlatform(@Nonnull final WlDisplayProxy wlDisplayProxy,
-                    @Nonnull final WaylandCursorFactory waylandCursorFactory,
-                    @Nonnull final WaylandScreenFactory waylandScreenFactory,
-                    @Nonnull final WaylandSeatFactory waylandSeatFactory,
-                    @Nonnull final WaylandShmFactory waylandShmFactory,
-                    @Nonnull final WaylandOutputFactory waylandOutputFactory) {
+    WaylandPlatform(@Nonnull final WlDisplayProxy wlDisplayProxy) {
         this.wlDisplayProxy = wlDisplayProxy;
-        this.waylandCursorFactory = waylandCursorFactory;
-        this.waylandScreenFactory = waylandScreenFactory;
-        this.waylandSeatFactory = waylandSeatFactory;
-        this.waylandShmFactory = waylandShmFactory;
-        this.waylandOutputFactory = waylandOutputFactory;
     }
 
     protected InputDeviceRegistry createInputDeviceRegistry() {
@@ -65,7 +42,7 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     }
 
     protected WaylandCursor createCursor() {
-        return this.waylandCursorFactory.create();
+        return new WaylandCursor();
     }
 
     protected WaylandScreen createScreen() {
@@ -79,10 +56,12 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
             this.wlDisplayProxy.roundtrip();
         }
 
-        return this.waylandScreenFactory.create(this.waylandOutput,
-                                                this.compositorProxy,
-                                                this.shellProxy,
-                                                this.waylandShm);
+        return new WaylandScreen(new WaylandBufferPoolFactory(),
+                                 this.wlDisplayProxy,
+                                 this.waylandOutput,
+                                 this.compositorProxy,
+                                 this.shellProxy,
+                                 this.waylandShm);
     }
 
     @Override
@@ -98,10 +77,10 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
                                                 });
         }
         else if (WlShmProxy.INTERFACE_NAME.equals(interface_)) {
-            this.waylandShm = this.waylandShmFactory.create(emitter,
-                                                            name,
-                                                            interface_,
-                                                            version);
+            this.waylandShm = new WaylandShm(emitter,
+                                             name,
+                                             interface_,
+                                             version);
         }
         else if (WlShellProxy.INTERFACE_NAME.equals(interface_)) {
             this.shellProxy = emitter.bind(name,
@@ -111,16 +90,17 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
                                            });
         }
         else if (WlOutputProxy.INTERFACE_NAME.equals(interface_)) {
-            this.waylandOutput = this.waylandOutputFactory.create(name,
-                                                                  emitter);
+            this.waylandOutput = new WaylandOutput(this.wlDisplayProxy,
+                                                   name,
+                                                   emitter);
         }
         else if (WlSeatProxy.INTERFACE_NAME.equals(interface_)) {
             //TODO keep seats stored somewhere? (Is this needed to avoid gc?)
-            this.waylandSeatFactory.create(emitter,
-                                           name,
-                                           interface_,
-                                           version,
-                                           getInputDeviceRegistry());
+            new WaylandSeat(emitter,
+                            name,
+                            interface_,
+                            version,
+                            getInputDeviceRegistry());
         }
     }
 

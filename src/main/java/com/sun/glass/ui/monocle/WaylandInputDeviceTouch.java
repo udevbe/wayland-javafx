@@ -1,6 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
 import org.freedesktop.wayland.client.WlSeatProxy;
 import org.freedesktop.wayland.client.WlSurfaceProxy;
 import org.freedesktop.wayland.client.WlTouchEventsV5;
@@ -9,7 +8,6 @@ import org.freedesktop.wayland.util.Fixed;
 
 import javax.annotation.Nonnull;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandInputDeviceTouch implements InputDevice, WlTouchEventsV5 {
 
     //should be accessed by jfx thread only! ->

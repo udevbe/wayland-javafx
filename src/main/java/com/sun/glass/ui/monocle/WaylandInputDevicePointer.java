@@ -1,6 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
 import com.sun.glass.events.MouseEvent;
 import org.freedesktop.wayland.client.WlPointerEventsV5;
 import org.freedesktop.wayland.client.WlPointerProxy;
@@ -12,7 +11,6 @@ import org.freedesktop.wayland.util.Fixed;
 
 import javax.annotation.Nonnull;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandInputDevicePointer implements InputDevice, WlPointerEventsV5 {
 
     //should be accessed by jfx thread only! ->

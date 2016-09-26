@@ -1,7 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import org.freedesktop.wayland.client.WlDisplayProxy;
 import org.freedesktop.wayland.client.WlOutputEventsV2;
 import org.freedesktop.wayland.client.WlOutputProxy;
@@ -9,9 +7,7 @@ import org.freedesktop.wayland.client.WlRegistryProxy;
 
 import javax.annotation.Nonnull;
 
-@AutoFactory(allowSubclasses = true,
-             className = "WaylandOutputFactory")
-public class WaylandOutput implements WlOutputEventsV2 {
+class WaylandOutput implements WlOutputEventsV2 {
 
     private final WlOutputProxy wlOutputProxy;
     private       int           x;
@@ -32,7 +28,7 @@ public class WaylandOutput implements WlOutputEventsV2 {
     private boolean geo;
     private boolean mode;
 
-    WaylandOutput(@Provided final WlDisplayProxy wlDisplayProxy,
+    WaylandOutput(final WlDisplayProxy wlDisplayProxy,
                   final int name,
                   @Nonnull final WlRegistryProxy registryProxy) {
         //binding to the output global will notify the compositor which in turn will send out the output information events

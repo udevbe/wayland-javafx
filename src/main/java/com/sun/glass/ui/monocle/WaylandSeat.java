@@ -1,7 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import org.freedesktop.wayland.client.WlRegistryProxy;
 import org.freedesktop.wayland.client.WlSeatEventsV3;
 import org.freedesktop.wayland.client.WlSeatProxy;
@@ -10,19 +8,12 @@ import org.freedesktop.wayland.shared.WlSeatCapability;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandSeat implements WlSeatEventsV3 {
 
     @Nonnull
-    private final WlSeatProxy                       wlSeatProxy;
+    private final WlSeatProxy         wlSeatProxy;
     @Nonnull
-    private final InputDeviceRegistry               inputDeviceRegistry;
-    @Nonnull
-    private final WaylandInputDeviceKeyboardFactory waylandInputDeviceKeyboardFactory;
-    @Nonnull
-    private final WaylandInputDevicePointerFactory  waylandInputDevicePointerFactory;
-    @Nonnull
-    private final WaylandInputDeviceTouchFactory    waylandInputDeviceTouchFactory;
+    private final InputDeviceRegistry inputDeviceRegistry;
 
     @Nullable
     private WaylandInputDeviceKeyboard waylandInputDeviceKeyboard;
@@ -31,17 +22,11 @@ public class WaylandSeat implements WlSeatEventsV3 {
     @Nullable
     private WaylandInputDevicePointer  waylandInputDevicePointer;
 
-    WaylandSeat(@Provided @Nonnull final WaylandInputDeviceKeyboardFactory waylandInputDeviceKeyboardFactory,
-                @Provided @Nonnull final WaylandInputDevicePointerFactory waylandInputDevicePointerFactory,
-                @Provided @Nonnull final WaylandInputDeviceTouchFactory waylandInputDeviceTouchFactory,
-                @Nonnull final WlRegistryProxy registryProxy,
+    WaylandSeat(@Nonnull final WlRegistryProxy registryProxy,
                 final int name,
                 @Nonnull final String interfaceName,
                 final int version,
                 @Nonnull final InputDeviceRegistry inputDeviceRegistry) {
-        this.waylandInputDeviceKeyboardFactory = waylandInputDeviceKeyboardFactory;
-        this.waylandInputDevicePointerFactory = waylandInputDevicePointerFactory;
-        this.waylandInputDeviceTouchFactory = waylandInputDeviceTouchFactory;
         this.inputDeviceRegistry = inputDeviceRegistry;
         this.wlSeatProxy = registryProxy.bind(name,
                                               WlSeatProxy.class,
@@ -56,7 +41,7 @@ public class WaylandSeat implements WlSeatEventsV3 {
 
         if ((WlSeatCapability.KEYBOARD.value & capabilities) != 0 && this.waylandInputDeviceKeyboard == null) {
             //keyboard was added
-            this.waylandInputDeviceKeyboard = this.waylandInputDeviceKeyboardFactory.create(this.wlSeatProxy);
+            this.waylandInputDeviceKeyboard = new WaylandInputDeviceKeyboard(this.wlSeatProxy);
             this.inputDeviceRegistry.getInputDevices()
                                     .add(this.waylandInputDeviceKeyboard);
         }
@@ -71,7 +56,7 @@ public class WaylandSeat implements WlSeatEventsV3 {
 
         if ((WlSeatCapability.POINTER.value & capabilities) != 0 && this.waylandInputDevicePointer == null) {
             //pointer was added
-            this.waylandInputDevicePointer = this.waylandInputDevicePointerFactory.create(this.wlSeatProxy);
+            this.waylandInputDevicePointer = new WaylandInputDevicePointer(this.wlSeatProxy);
             this.inputDeviceRegistry.getInputDevices()
                                     .add(this.waylandInputDevicePointer);
         }
@@ -86,7 +71,8 @@ public class WaylandSeat implements WlSeatEventsV3 {
 
         if ((WlSeatCapability.TOUCH.value & capabilities) != 0 && this.waylandInputDeviceTouch == null) {
             //touch was added
-            this.waylandInputDeviceTouch = this.waylandInputDeviceTouchFactory.create(this.wlSeatProxy);
+            this.waylandInputDeviceTouch = new WaylandInputDeviceTouch(this.wlSeatProxy);
+            ;
             this.inputDeviceRegistry.getInputDevices()
                                     .add(this.waylandInputDeviceTouch);
         }
@@ -99,7 +85,7 @@ public class WaylandSeat implements WlSeatEventsV3 {
             this.waylandInputDeviceTouch = null;
         }
 
-        //TODO release seat if no devices are announced anymore?
+        //TODO release seat if no devices are announced anymore
     }
 
     @Override

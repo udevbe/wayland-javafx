@@ -1,7 +1,5 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
-import com.google.auto.factory.Provided;
 import com.sun.glass.ui.Pixels;
 import org.freedesktop.jaccall.JNI;
 import org.freedesktop.jaccall.Pointer;
@@ -23,21 +21,14 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_OP_OVER;
 import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_OP_SRC;
 import static com.sun.glass.ui.monocle.Libpixman1.PIXMAN_a8r8g8b8;
 
-@AutoFactory(allowSubclasses = true,
-             className = "WaylandScreenFactory")
-public class WaylandScreen implements NativeScreen,
-                                      WlSurfaceEventsV4,
-                                      WlShellSurfaceEvents {
-
-    private final ExecutorService waylandThread = Executors.newSingleThreadExecutor(r -> new Thread(r,
-                                                                                                    "wayland-event-loop"));
+class WaylandScreen implements NativeScreen,
+                               WlSurfaceEventsV4,
+                               WlShellSurfaceEvents {
 
     private final WlSurfaceProxy    wlSurfaceProxy;
     private final WlDisplayProxy    display;
@@ -64,8 +55,8 @@ public class WaylandScreen implements NativeScreen,
      * pipeline, window content is stored internally in an OpenGL Texture.
      */
 
-    WaylandScreen(@Provided final WaylandBufferPoolFactory waylandBufferPoolFactory,
-                  @Provided final WlDisplayProxy wlDisplayProxy,
+    WaylandScreen(final WaylandBufferPoolFactory waylandBufferPoolFactory,
+                  final WlDisplayProxy wlDisplayProxy,
                   final WaylandOutput waylandOutput,
                   final WlCompositorProxy wlCompositorProxy,
                   final WlShellProxy wlShellProxy,
@@ -90,7 +81,6 @@ public class WaylandScreen implements NativeScreen,
         this.wlSurfaceProxy.attach(this.wlBufferProxy,
                                    0,
                                    0);
-        this.waylandThread.submit(this::loop);
     }
 
     public int getWidth() {
@@ -99,11 +89,6 @@ public class WaylandScreen implements NativeScreen,
 
     public int getHeight() {
         return this.waylandOutput.getHeight();
-    }
-
-    private void loop() {
-        this.display.roundtrip();
-        this.waylandThread.submit(this::loop);
     }
 
     public int getDepth() {
@@ -157,7 +142,7 @@ public class WaylandScreen implements NativeScreen,
                              final int height,
                              final float alpha) {
 
-        this.waylandThread.submit(() -> {
+        WaylandPlatformFactory.WL_LOOP.submit(() -> {
             //TODO this call should block if no more buffers are available & it should unblock as soon as the compositor release one.
             //-> we don't have to wait here, but instead can initiate a wait as soon as we actually need a buffer (eg uploadPixels).
 
@@ -233,7 +218,7 @@ public class WaylandScreen implements NativeScreen,
     @Override
     public void swapBuffers() {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        this.waylandThread.submit(() -> {
+        WaylandPlatformFactory.WL_LOOP.submit(() -> {
             if (this.wlCallbackProxy != null) {
                 this.wlCallbackProxy.destroy();
             }
@@ -244,6 +229,7 @@ public class WaylandScreen implements NativeScreen,
             this.wlBufferProxy = null;
         });
 
+        //this blocks until we receive feedback from the compositor that a next redraw should happen
         try {
             countDownLatch.await();
         }

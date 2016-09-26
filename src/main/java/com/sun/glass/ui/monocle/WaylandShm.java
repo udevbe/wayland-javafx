@@ -1,13 +1,11 @@
 package com.sun.glass.ui.monocle;
 
-import com.google.auto.factory.AutoFactory;
 import org.freedesktop.wayland.client.WlRegistryProxy;
 import org.freedesktop.wayland.client.WlShmEvents;
 import org.freedesktop.wayland.client.WlShmProxy;
 
 import javax.annotation.Nonnull;
 
-@AutoFactory(allowSubclasses = true)
 public class WaylandShm implements WlShmEvents {
 
     private final WlShmProxy wlShmProxy;
