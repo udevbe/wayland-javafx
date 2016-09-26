@@ -93,4 +93,9 @@ public class WaylandSeat implements WlSeatEventsV3 {
                      @Nonnull final String name) {
 
     }
+
+    @Nullable
+    public WaylandInputDevicePointer getWaylandInputDevicePointer() {
+        return waylandInputDevicePointer;
+    }
 }

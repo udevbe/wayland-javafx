@@ -28,10 +28,10 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     private WlCompositorProxy compositorProxy;
     @Nullable
     private WlShellProxy      shellProxy;
-
     @Nullable
-    private WaylandShm    waylandShm;
-    private WaylandOutput waylandOutput;
+    private WaylandShm        waylandShm;
+    private WaylandOutput     waylandOutput;
+    private WaylandSeat       waylandSeat;
 
     WaylandPlatform(@Nonnull final WlDisplayProxy wlDisplayProxy) {
         this.wlDisplayProxy = wlDisplayProxy;
@@ -42,10 +42,22 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
     }
 
     protected WaylandCursor createCursor() {
-        return new WaylandCursor();
+        if (this.waylandShm == null ||
+            this.compositorProxy == null) {
+            ensureGlobals();
+        }
+
+        if (this.waylandSeat == null) {
+            return null;
+        }
+        else {
+            return new WaylandCursor(this.waylandShm.getWlShmProxy(),
+                                     this.compositorProxy,
+                                     this.waylandSeat);
+        }
     }
 
-    protected WaylandScreen createScreen() {
+    private void ensureGlobals() {
         //make sure we receive all globals
         while (this.waylandOutput == null ||
                this.compositorProxy == null ||
@@ -55,7 +67,15 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
             //FIXME safe guard so we can bail if required globals are never received
             this.wlDisplayProxy.roundtrip();
         }
+    }
 
+    protected WaylandScreen createScreen() {
+        if (this.waylandOutput == null ||
+            this.compositorProxy == null ||
+            this.shellProxy == null ||
+            this.waylandShm == null) {
+            ensureGlobals();
+        }
         return new WaylandScreen(new WaylandBufferPoolFactory(),
                                  this.wlDisplayProxy,
                                  this.waylandOutput,
@@ -90,17 +110,22 @@ public class WaylandPlatform extends NativePlatform implements WlRegistryEvents 
                                            });
         }
         else if (WlOutputProxy.INTERFACE_NAME.equals(interface_)) {
-            this.waylandOutput = new WaylandOutput(this.wlDisplayProxy,
-                                                   name,
-                                                   emitter);
+            //monocle doesnt support multiple outputs
+            if (this.waylandOutput == null) {
+                this.waylandOutput = new WaylandOutput(this.wlDisplayProxy,
+                                                       name,
+                                                       emitter);
+            }
         }
         else if (WlSeatProxy.INTERFACE_NAME.equals(interface_)) {
-            //TODO keep seats stored somewhere? (Is this needed to avoid gc?)
-            new WaylandSeat(emitter,
-                            name,
-                            interface_,
-                            version,
-                            getInputDeviceRegistry());
+            //TODO support multi seat (does monocle support this?)
+            if (this.waylandSeat == null) {
+                this.waylandSeat = new WaylandSeat(emitter,
+                                                   name,
+                                                   interface_,
+                                                   version,
+                                                   getInputDeviceRegistry());
+            }
         }
     }
 
