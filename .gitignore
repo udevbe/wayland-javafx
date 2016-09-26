@@ -43,6 +43,7 @@ hs_err_pid*
 
 # IntelliJ
 /out/
+.idea/
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
@@ -72,3 +73,4 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
+/wayland-javafx.iml
